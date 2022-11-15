@@ -28,8 +28,9 @@ namespace ImuOrientation {
         Quaternion& operator= (const Quaternion&) = default;
 
         ~Quaternion() {}
-        
-        Quaternion multiply(Quaternion &q);
+
+        Quaternion operator*(Quaternion& rhs);
+
         Quaternion inverse();
         Quaternion conjugate();
         double dotProduct(Quaternion &q);

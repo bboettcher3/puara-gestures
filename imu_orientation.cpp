@@ -23,7 +23,7 @@ double PI = 3.141592653589793;
 double halfPI = 1.570796326794897;
 double twoPI = 6.283185307179586;
 
-ImuOrientation::Quaternion ImuOrientation::getOrientation(Quaternion &prev, Axes& accel, Axes& mag, Axes& gyro, double weight)
+ImuOrientation::Quaternion ImuOrientation::getOrientation(Quaternion& prev, Axes& accel, Axes& mag, Axes& gyro, double weight)
 {
     // calculate polar representation of accelerometer data
     accel.roll = atan2(accel.z, accel.y);
@@ -42,7 +42,7 @@ ImuOrientation::Quaternion ImuOrientation::getOrientation(Quaternion &prev, Axes
     qat.x = sin(accel.tilt * 0.5);
     qat.y = qat.z = 0;
     Quaternion qat_inv = qat.inverse();
-    Quaternion qa = qat.multiply(qar);
+    Quaternion qa = qat * qar;
 
     // calculate polar representation of magnetometer data
     mag.roll = atan2(mag.z, mag.y) - PI;
@@ -57,11 +57,11 @@ ImuOrientation::Quaternion ImuOrientation::getOrientation(Quaternion &prev, Axes
     qmt.w = cos(mag.tilt * 0.5);
     qmt.x = sin(mag.tilt * 0.5);
     qmt.y = qmt.z = 0;
-    Quaternion qm = qmt.multiply(qmr);
+    Quaternion qm = qmt * qmr;
 
     // rotate the magnetometer quaternion
-    qm = qm.multiply(qar_inv);
-    qm = qm.multiply(qat_inv);
+    qm = qm * qar_inv;
+    qm = qm * qat_inv;
 
     // extract azimuth
     double azimuth = atan2(qm.x, qm.y) + PI;
@@ -75,7 +75,7 @@ ImuOrientation::Quaternion ImuOrientation::getOrientation(Quaternion &prev, Axes
     qm.z = sin(azimuth * 0.5);
 
     // construct quaternion from combined accelerometer and magnetometer azimuth data
-    Quaternion qam = qm.multiply(qa);
+    Quaternion qam = qm * qa;
 
     // construct quaternion from gyroscope axes
     Quaternion qg;
@@ -99,7 +99,7 @@ ImuOrientation::Quaternion ImuOrientation::getOrientation(Quaternion &prev, Axes
 
     // complementary filter:
     // integrate latest gyro quaternion with stored orientation
-    Quaternion orientation = prev.multiply(qg);
+    Quaternion orientation = prev * qg;
     // SLERP between stored orientation and new accel + mag estimate
     Quaternion delayed = orientation;
     orientation = qam.slerp(orientation, weight);
@@ -108,13 +108,13 @@ ImuOrientation::Quaternion ImuOrientation::getOrientation(Quaternion &prev, Axes
     return delayed.getMinimumDistance(orientation);
 }
 
-ImuOrientation::Quaternion ImuOrientation::Quaternion::multiply(Quaternion &q)
+ImuOrientation::Quaternion ImuOrientation::Quaternion::operator*(Quaternion& rhs)
 {
     Quaternion o;
-    o.w = w * q.w - x * q.x - y * q.y - z * q.z;
-    o.x = x * q.w + w * q.x + y * q.z - z * q.y;
-    o.y = w * q.y - x * q.z + y * q.w + z * q.x;
-    o.z = w * q.z + x * q.y - y * q.x + z * q.w;
+    o.w = w * rhs.w - x * rhs.x - y * rhs.y - z * rhs.z;
+    o.x = x * rhs.w + w * rhs.x + y * rhs.z - z * rhs.y;
+    o.y = w * rhs.y - x * rhs.z + y * rhs.w + z * rhs.x;
+    o.z = w * rhs.z + x * rhs.y - y * rhs.x + z * rhs.w;
     return o;
 }
 
