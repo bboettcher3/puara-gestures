@@ -1,8 +1,10 @@
-/**************************************************************************
+/***************************************************************************
  *                                                                         *
  * Sensor Fusion code for estimating orientation of an IMU                 *
  * 2022 Joseph Malloch, Brady Boettcher                                    *
- * Input Devices and Music Interaction Laboratory                          *
+ * Graphics and Experiential Media (GEM) Laboratory                        *
+ * Input Devices and Music Interaction Laboratory (IDMIL)                  *
+ *                                                                         *
  ***************************************************************************
  *                                                                         *
  * This program is free software; you can redistribute it and/or modify    *
@@ -17,7 +19,11 @@
 #ifndef IMU_ORIENTATION_H
 #define IMU_ORIENTATION_H
 
-namespace ImuOrientation {
+class IMU_Orientation {
+  public:
+    IMU_Orientation(): quaternion(1,0,0,0) {}
+    ~IMU_Orientation() {}
+
     // Data structures
     class Quaternion
     {
@@ -28,15 +34,15 @@ namespace ImuOrientation {
         Quaternion& operator= (const Quaternion&) = default;
 
         ~Quaternion() {}
-        
-        Quaternion multiply(Quaternion &q);
+
+        Quaternion operator*(Quaternion& rhs);
+
         Quaternion inverse();
         Quaternion conjugate();
         double dotProduct(Quaternion &q);
         Quaternion slerp(Quaternion &q, double weight);
         void normalize();
-        Quaternion normalized();
-        Quaternion getMinimumDistance(Quaternion &q);
+        void minimizeDistance(Quaternion &q);
 
         // Quaternion members
         double  w;
@@ -46,19 +52,42 @@ namespace ImuOrientation {
     private:
     };
 
-    /* Only x, y, z set for inputs; roll, tilt and magnitude calculated by this class */
-    typedef struct Axes
+    typedef struct Euler
     {
-        double  x;
-        double  y;
-        double  z;
-        double  roll;
-        double  tilt;
-        double  magnitude;
-    } Axes;
+        union {
+            double tilt;
+            double pitch;
+        };
+        double roll;
+        union {
+            double azimuth;
+            double heading;
+        };
+    } Euler;
 
-    /* Returns the current orientation as a quaternion */
-    Quaternion getOrientation(Quaternion &prev, Axes& accel, Axes& mag, Axes& gyro, double weight);
+    void setAccelerometerValues(double x, double y, double z);
+    void setMagnetometerValues(double x, double y, double z);
+    void setGyroscopeDegreeValues(double x, double y, double z, double period);
+    void setGyroscopeRadianValues(double x, double y, double z, double period);
+
+    void update(double weight = 0.01);
+
+    Quaternion quaternion;
+    Euler euler;
+
+  private:
+    typedef struct Cartesian
+    {
+      double x;
+      double y;
+      double z;
+      double magnitude;
+    } Cartesian;
+
+    Cartesian accel;
+    Cartesian gyro;
+    Cartesian gyro_bias;
+    Cartesian mag;
 };
 
 #endif
