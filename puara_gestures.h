@@ -39,10 +39,8 @@ class PuaraGestures {
         void updateJabShake();
         // Orientation
         const float DECLINATION = -14.14; // Declination at Montreal on 2020-03-12
-        ImuOrientation::Axes accelAxes;
-        ImuOrientation::Axes gyroAxes;
-        ImuOrientation::Axes magAxes;
-        ImuOrientation::Quaternion orientation;
+
+        Imu_Orientation orientation;
         void updateOrientation();
 
         // touch array

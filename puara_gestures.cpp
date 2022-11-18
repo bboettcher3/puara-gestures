@@ -73,7 +73,7 @@ void PuaraGestures::updateJabShake() {
 }
 
 void PuaraGestures::updateOrientation() {
-  orientation = ImuOrientation::getOrientation(orientation, accelAxes, gyroAxes, magAxes, 0.5);
+  orientation.update(0.01);
 }
 
 void PuaraGestures::updateAccel(float accelX, float accelY, float accelZ) {
@@ -85,9 +85,7 @@ void PuaraGestures::updateAccel(float accelX, float accelY, float accelZ) {
     accelBuffers[1].pop_front();
     accelBuffers[2].pop_front();
   }
-  accelAxes.x = accelX;
-  accelAxes.y = accelY;
-  accelAxes.z = accelZ;
+  orientation.setAccelerometerValues(accelX, accelY, accelZ);
 }
 
 void PuaraGestures::updateGyro(float gyroX, float gyroY, float gyroZ) {        
@@ -99,9 +97,10 @@ void PuaraGestures::updateGyro(float gyroX, float gyroY, float gyroZ) {
     gyroBuffers[1].pop_front();
     gyroBuffers[2].pop_front();
   }
-  gyroAxes.x = gyroX;
-  gyroAxes.y = gyroY;
-  gyroAxes.z = gyroZ;
+  static long then = esp_timer_get_time();
+  long now = esp_timer_get_time();
+  orientation.setGyroscopeDegreeValues(gyroX, gyroY, gyroZ, (now - then) * 0.000001);
+  then = now;
 }
 
 void PuaraGestures::updateMag(float magX, float magY, float magZ) {
@@ -113,9 +112,7 @@ void PuaraGestures::updateMag(float magX, float magY, float magZ) {
     magBuffers[1].pop_front();
     magBuffers[2].pop_front();
   }
-  magAxes.x = magX;
-  magAxes.y = magY;
-  magAxes.z = magZ;
+  orientation.setMagnetometerValues(magX, magY, magZ);
 }
 
 // Simple leaky integrator implementation
@@ -171,25 +168,15 @@ float PuaraGestures::getMagZ() {
 };
 
 float PuaraGestures::getYaw() {
-  ImuOrientation::Quaternion o = orientation;
-  float yaw = atan2(2.0f * (o.w * o.x + o.y * o.z), o.w * o.w - o.x * o.x - o.y * o.y + o.z * o.z);
-  yaw *= 180.0f / M_PI;
-  return yaw;
+  return orientation.euler.azimuth;
 }
 
 float PuaraGestures::getPitch() {
-  ImuOrientation::Quaternion o = orientation;
-  float pitch = -asin(2.0f * (o.x * o.z - o.w * o.y));
-  pitch *= 180.0f / M_PI;
-  return pitch;
+  return orientation.euler.tilt;
 }
 
 float PuaraGestures::getRoll() {
-  ImuOrientation::Quaternion o = orientation;
-  float roll = atan2(2.0f * (o.x * o.y + o.w * o.z), o.w * o.w + o.x * o.x - o.y * o.y - o.z * o.z);
-  roll *= 180.0f / M_PI;
-  roll += DECLINATION;
-  return roll;
+  return orientation.euler.roll;
 }
 
 float PuaraGestures::getShakeX() {
@@ -217,19 +204,19 @@ float PuaraGestures::getJabZ() {
 };
 
 double PuaraGestures::getOrientationW() {
-  return orientation.w;
+  return orientation.quaternion.w;
 }
 
 double PuaraGestures::getOrientationX() {
-  return orientation.x;
+  return orientation.quaternion.x;
 }
 
 double PuaraGestures::getOrientationY() {
-  return orientation.y;
+  return orientation.quaternion.y;
 }
 
 double PuaraGestures::getOrientationZ() {
-  return orientation.z;
+  return orientation.quaternion.z;
 }
 
 /* Expects an array of discrete touch values (int, 0 or 1) and
